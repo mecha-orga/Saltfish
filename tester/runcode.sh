@@ -36,12 +36,12 @@ fi
 
 
 # Imposing memory limit with ulimit
-# if [ "$EXT" != "java" ]; then
-#   ulimit -v $((MEMLIMIT+10000))
-#   ulimit -m $((MEMLIMIT+10000))
-#   ulimit -s $((MEMLIMIT+10000))
-# fi
-# todo: figure out why this disables sudo
+if [ "$EXT" != "java" ]; then
+  # ulimit -v $((MEMLIMIT+10000))
+  # todo: figure out why this disables sudo
+  ulimit -m $((MEMLIMIT+10000))
+  ulimit -s $((MEMLIMIT+10000))
+fi
 
 # Imposing time limit with ulimit
 ulimit -t $TIMELIMITINT
