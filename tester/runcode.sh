@@ -3,6 +3,8 @@
 # This file runs a command with given limits
 # usage: ./runcode.sh extension memorylimit timelimit timelimit_int input_file command
 
+RESTRICTED_MODE=true
+
 EXT=$1
 shift
 
@@ -37,8 +39,12 @@ fi
 
 # Imposing memory limit with ulimit
 if [ "$EXT" != "java" ]; then
-  # ulimit -v $((MEMLIMIT+10000))
-  # todo: figure out why this disables sudo
+  if $RESTRICTED_MODE; then
+    ulimit -v $((MEMLIMIT+262144))
+  # memory required for sudo is large. 
+  else
+    ulimit -v $((MEMLIMIT+10000))
+  fi
   ulimit -m $((MEMLIMIT+10000))
   ulimit -s $((MEMLIMIT+10000))
 fi
@@ -46,24 +52,27 @@ fi
 # Imposing time limit with ulimit
 ulimit -t $TIMELIMITINT
 
-# if $TIMEOUT_EXISTS; then
-# 	# Run the command with REAL time limit of TIMELIMITINT*2
-# 	timeout -s9 $((TIMELIMITINT*2)) $CMD <$IN >out 2>err
-# else
-# 	# Run the command
-# 	$CMD <$IN >out 2>err	
-# fi
-# You can run submitted codes as another user:
-#
-if $TIMEOUT_EXISTS; then
-	sudo -u restricted_user timeout -s9 $((TIMELIMITINT*2)) $CMD <$IN >out 2>err
+if $RESTRICTED_MODE; then
+  # You can run submitted codes as another user:
+  #
+  if $TIMEOUT_EXISTS; then
+  	sudo -u restricted_user timeout -s9 $((TIMELIMITINT*2)) $CMD <$IN >out 2>err
+  else
+  	sudo -u restricted_user $CMD <$IN >out 2>err	
+  fi
+  #
+  # But you should change your sudoers file and allow the user running PHP (e.g. www-data in Ubuntu+Apache) to su to another_user
+  # e.g. In Ubuntu (Apache running under www-data), run visudo and add this line:
+  # www-data ALL=(another_user) NOPASSWD: ALL
 else
-	sudo -u restricted_user $CMD <$IN >out 2>err	
+  if $TIMEOUT_EXISTS; then
+    # Run the command with REAL time limit of TIMELIMITINT*2
+    timeout -s9 $((TIMELIMITINT*2)) $CMD <$IN >out 2>err
+  else
+    # Run the command
+    $CMD <$IN >out 2>err  
+  fi
 fi
-#
-# But you should change your sudoers file and allow the user running PHP (e.g. www-data in Ubuntu+Apache) to su to another_user
-# e.g. In Ubuntu (Apache running under www-data), run visudo and add this line:
-# www-data ALL=(another_user) NOPASSWD: ALL
 EC=$?
 
 # KILL all processes of another_user (A process may still be alive!)
