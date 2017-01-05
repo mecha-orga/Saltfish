@@ -60,10 +60,17 @@ if $RESTRICTED_MODE; then
   else
   	sudo -u restricted_user $CMD <$IN >out 2>err	
   fi
+
+  EC=$?
+
   #
   # But you should change your sudoers file and allow the user running PHP (e.g. www-data in Ubuntu+Apache) to su to another_user
   # e.g. In Ubuntu (Apache running under www-data), run visudo and add this line:
   # www-data ALL=(another_user) NOPASSWD: ALL
+
+  # KILL all processes of another_user (A process may still be alive!)
+  # If you are running codes as another_user, also uncomment this line:
+  sudo -u restricted_user pkill -9 -u restricted_user
 else
   if $TIMEOUT_EXISTS; then
     # Run the command with REAL time limit of TIMELIMITINT*2
@@ -72,12 +79,10 @@ else
     # Run the command
     $CMD <$IN >out 2>err  
   fi
+  
+  EC=$?
 fi
-EC=$?
 
-# KILL all processes of another_user (A process may still be alive!)
-# If you are running codes as another_user, also uncomment this line:
-sudo -u restricted_user pkill -9 -u restricted_user
 
 # Return exitcode
 exit $EC
